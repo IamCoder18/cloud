@@ -178,50 +178,63 @@ export function RigSettingsPageClient({ townId, rigId }: Props) {
   function populateStateFromConfig() {
     const { rigConfig, townConfig } = configQuery.data!;
     const rigRig = rigQuery.data!;
+    const cfg = rigConfig ?? {
+      default_model: undefined,
+      small_model: undefined,
+      role_models: undefined,
+      merge_strategy: undefined,
+      refinery: undefined,
+      custom_instructions: undefined,
+      git_push_flags: undefined,
+      default_branch: undefined,
+      max_polecats_per_rig: undefined,
+      staged_convoys_default: undefined,
+      default_convoy_merge_mode: undefined,
+    };
 
-    setDefaultModel(rigConfig.default_model);
-    setSmallModel(rigConfig.small_model);
+    setDefaultModel(cfg.default_model);
+    setSmallModel(cfg.small_model);
     setRoleModels({
-      mayor: rigConfig.role_models?.mayor,
-      refinery: rigConfig.role_models?.refinery,
-      polecat: rigConfig.role_models?.polecat,
+      mayor: cfg.role_models?.mayor,
+      refinery: cfg.role_models?.refinery,
+      polecat: cfg.role_models?.polecat,
     });
-    setMergeStrategy(rigConfig.merge_strategy ?? townConfig.merge_strategy ?? 'direct');
-    setCodeReview(rigConfig.refinery?.code_review ?? townConfig.refinery?.code_review ?? true);
+    setMergeStrategy(cfg.merge_strategy ?? townConfig.merge_strategy ?? 'direct');
+    setCodeReview(cfg.refinery?.code_review ?? townConfig.refinery?.code_review ?? true);
     setAutoResolvePrFeedback(
-      rigConfig.refinery?.auto_resolve_pr_feedback ??
+      cfg.refinery?.auto_resolve_pr_feedback ??
         townConfig.refinery?.auto_resolve_pr_feedback ??
         false
     );
     setAutoMergeDelay(
-      rigConfig.refinery?.auto_merge_delay_minutes != null
-        ? String(rigConfig.refinery.auto_merge_delay_minutes)
+      cfg.refinery?.auto_merge_delay_minutes != null
+        ? String(cfg.refinery.auto_merge_delay_minutes)
         : townConfig.refinery?.auto_merge_delay_minutes != null
           ? String(townConfig.refinery.auto_merge_delay_minutes)
           : ''
     );
-    setAutoMerge(rigConfig.refinery?.auto_merge ?? townConfig.refinery?.auto_merge ?? true);
+    setAutoMerge(cfg.refinery?.auto_merge ?? townConfig.refinery?.auto_merge ?? true);
     setRequireCleanMerge(
-      rigConfig.refinery?.require_clean_merge ??
+      cfg.refinery?.require_clean_merge ??
         townConfig.refinery?.require_clean_merge ??
         true
     );
-    setCustomInstructions(rigConfig.custom_instructions ?? '');
-    setGitPushFlags((rigConfig.git_push_flags ?? []).join(' '));
-    setDefaultBranch(rigConfig.default_branch ?? rigRig?.default_branch ?? 'main');
-    setMaxPolecats(rigConfig.max_polecats_per_rig ?? townConfig.max_polecats_per_rig ?? 10);
+    setCustomInstructions(cfg.custom_instructions ?? '');
+    setGitPushFlags((cfg.git_push_flags ?? []).join(' '));
+    setDefaultBranch(cfg.default_branch ?? rigRig?.default_branch ?? 'main');
+    setMaxPolecats(cfg.max_polecats_per_rig ?? townConfig.max_polecats_per_rig ?? 10);
     setStagedConvoys(
-      rigConfig.staged_convoys_default ?? townConfig.staged_convoys_default ?? false
+      cfg.staged_convoys_default ?? townConfig.staged_convoys_default ?? false
     );
-    setConvoyMergeMode(rigConfig.default_convoy_merge_mode ?? 'squash');
+    setConvoyMergeMode(cfg.default_convoy_merge_mode ?? 'squash');
 
     setInherited({
-      default_model: !rigConfig.default_model,
-      small_model: !rigConfig.small_model,
-      mayor_model: !rigConfig.role_models?.mayor,
-      refinery_model: !rigConfig.role_models?.refinery,
-      polecat_model: !rigConfig.role_models?.polecat,
-      merge_strategy: !rigConfig.merge_strategy,
+      default_model: !cfg.default_model,
+      small_model: !cfg.small_model,
+      mayor_model: !cfg.role_models?.mayor,
+      refinery_model: !cfg.role_models?.refinery,
+      polecat_model: !cfg.role_models?.polecat,
+      merge_strategy: !cfg.merge_strategy,
       auto_resolve_pr_feedback: rigConfig.refinery?.auto_resolve_pr_feedback == null,
       auto_merge_delay_minutes: rigConfig.refinery?.auto_merge_delay_minutes == null,
       auto_merge: rigConfig.refinery?.auto_merge == null,

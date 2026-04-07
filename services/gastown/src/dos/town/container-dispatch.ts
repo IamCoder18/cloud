@@ -318,6 +318,13 @@ export async function startAgentInContainer(
     defaultBranch: string;
     kilocodeToken?: string;
     townConfig: TownConfig;
+    rigConfig?: {
+      default_model?: string;
+      small_model?: string;
+      role_models?: Record<string, string>;
+      townId: string;
+      rigId: string;
+    };
     systemPromptOverride?: string;
     platformIntegrationId?: string;
     /** For convoy beads: the convoy's feature branch to branch from instead of defaultBranch. */
@@ -425,8 +432,8 @@ export async function startAgentInContainer(
           checkpoint: params.checkpoint,
           conversationHistory: params.conversationHistory,
         }),
-        model: resolveModel(params.townConfig, params.rigId, params.role),
-        smallModel: resolveSmallModel(params.townConfig),
+        model: resolveModel(params.townConfig, params.rigConfig, params.role),
+        smallModel: resolveSmallModel(params.townConfig, params.rigConfig),
         systemPrompt: appendCustomInstructions(
           params.systemPromptOverride ??
             systemPromptForRole({

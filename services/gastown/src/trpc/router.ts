@@ -599,11 +599,43 @@ export const gastownRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const rig = await verifyRigOwnership(ctx.env, ctx, input.rigId, input.townId);
+      const ownership = await resolveTownOwnership(ctx.env, ctx, input.townId);
       const townStub = getTownDOStub(ctx.env, input.townId);
-      const [rigConfig, townConfig] = await Promise.all([
+      const [rigConfig, rawTownConfig] = await Promise.all([
         townStub.getRigConfig(input.rigId),
         townStub.getTownConfig(),
       ]);
+
+      const mask = (s?: string) => (s ? '****' + s.slice(-4) : undefined);
+      const applyMask = (config: typeof rawTownConfig) => ({
+        ...config,
+        kilocode_token: mask(config.kilocode_token),
+        github_cli_pat: mask(config.github_cli_pat),
+        git_auth: {
+          ...config.git_auth,
+          github_token: mask(config.git_auth?.github_token),
+          gitlab_token: mask(config.git_auth?.gitlab_token),
+        },
+        env_vars: Object.fromEntries(
+          Object.entries(config.env_vars).map(([k, v]) => [k, '****' + v.slice(-4)])
+        ),
+      });
+
+      const needsMasking = ownership.type === 'admin' || ownership.type === 'org';
+      let townConfig = rawTownConfig;
+      if (needsMasking) {
+        if (ownership.type === 'org') {
+          const membership = getOrgMembership(ctx.orgMemberships, ownership.orgId);
+          const isOrgOwner = membership?.role === 'owner';
+          const isTownCreator = ctx.userId === rawTownConfig.created_by_user_id;
+          if (!isOrgOwner && !isTownCreator) {
+            townConfig = applyMask(rawTownConfig);
+          }
+        } else {
+          townConfig = applyMask(rawTownConfig);
+        }
+      }
+
       return { rigConfig, townConfig };
     }),
 
@@ -612,12 +644,30 @@ export const gastownRouter = router({
       z.object({
         rigId: z.string().uuid(),
         townId: z.string().uuid(),
-        config: RigConfigSchema.partial(),
+        config: RigConfigSchema.partial().pick({
+          default_model: true,
+          small_model: true,
+          role_models: true,
+          merge_strategy: true,
+          refinery: true,
+          custom_instructions: true,
+          git_push_flags: true,
+          default_branch: true,
+          max_polecats_per_rig: true,
+          staged_convoys_default: true,
+          default_convoy_merge_mode: true,
+        }),
       })
     )
     .output(RigConfigSchema)
     .mutation(async ({ ctx, input }) => {
       const rig = await verifyRigOwnership(ctx.env, ctx, input.rigId, input.townId);
+      if (rig.town_id !== input.townId) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Rig does not belong to the specified town',
+        });
+      }
       const ownership = await resolveTownOwnership(ctx.env, ctx, input.townId);
       if (ownership.type === 'admin') {
         throw new TRPCError({

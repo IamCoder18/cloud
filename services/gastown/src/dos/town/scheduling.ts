@@ -47,6 +47,9 @@ type RigConfig = {
   kilocodeToken?: string;
   platformIntegrationId?: string;
   merge_strategy?: string;
+  default_model?: string;
+  small_model?: string;
+  role_models?: Record<string, string>;
 };
 
 function now(): string {
@@ -138,6 +141,13 @@ export async function dispatchAgent(
       defaultBranch: rigConfig.defaultBranch,
       kilocodeToken,
       townConfig,
+      rigConfig: {
+        default_model: rigConfig.default_model,
+        small_model: rigConfig.small_model,
+        role_models: rigConfig.role_models as Record<string, string> | undefined,
+        townId: rigConfig.townId,
+        rigId: rigConfig.rigId,
+      },
       platformIntegrationId: rigConfig.platformIntegrationId,
       convoyFeatureBranch: convoyFeatureBranch ?? undefined,
       systemPromptOverride: options?.systemPromptOverride,

@@ -175,6 +175,180 @@ export declare const gastownRouter: import('@trpc/server').TRPCBuiltRouter<
       output: void;
       meta: object;
     }>;
+    getRigConfig: import('@trpc/server').TRPCQueryProcedure<{
+      input: {
+        rigId: string;
+        townId: string;
+      };
+      output: {
+        rigConfig: {
+          townId: string;
+          rigId: string;
+          gitUrl: string;
+          defaultBranch: string;
+          userId: string;
+          kilocodeToken?: string | undefined;
+          platformIntegrationId?: string | undefined;
+          merge_strategy?: 'direct' | 'pr' | undefined;
+          default_model?: string | undefined;
+          small_model?: string | undefined;
+          role_models?:
+            | {
+                mayor?: string | undefined;
+                refinery?: string | undefined;
+                polecat?: string | undefined;
+              }
+            | undefined;
+          refinery?:
+            | {
+                gates: string[];
+                auto_merge: boolean;
+                require_clean_merge: boolean;
+                code_review: boolean;
+                review_mode: 'comments' | 'rework';
+                auto_resolve_pr_feedback: boolean;
+                auto_merge_delay_minutes: number | null;
+              }
+            | undefined;
+          custom_instructions?: string | undefined;
+          git_push_flags?: string[] | undefined;
+          default_branch?: string | undefined;
+          max_polecats_per_rig?: number | undefined;
+          staged_convoys_default?: boolean | undefined;
+          default_convoy_merge_mode?: 'squash' | 'merge' | 'rebase' | undefined;
+        } | null;
+        townConfig: {
+          env_vars: Record<string, string>;
+          git_auth: {
+            github_token?: string | undefined;
+            gitlab_token?: string | undefined;
+            gitlab_instance_url?: string | undefined;
+            platform_integration_id?: string | undefined;
+          };
+          owner_user_id?: string | undefined;
+          owner_type: 'org' | 'user';
+          owner_id?: string | undefined;
+          created_by_user_id?: string | undefined;
+          organization_id?: string | undefined;
+          kilocode_token?: string | undefined;
+          default_model?: string | undefined;
+          role_models?:
+            | {
+                mayor?: string | undefined;
+                refinery?: string | undefined;
+                polecat?: string | undefined;
+              }
+            | undefined;
+          small_model?: string | undefined;
+          max_polecats_per_rig?: number | undefined;
+          merge_strategy: 'direct' | 'pr';
+          refinery?:
+            | {
+                gates: string[];
+                auto_merge: boolean;
+                require_clean_merge: boolean;
+                code_review: boolean;
+                review_mode: 'comments' | 'rework';
+                auto_resolve_pr_feedback: boolean;
+                auto_merge_delay_minutes: number | null;
+              }
+            | undefined;
+          alarm_interval_active?: number | undefined;
+          alarm_interval_idle?: number | undefined;
+          container?:
+            | {
+                sleep_after_minutes?: number | undefined;
+              }
+            | undefined;
+          staged_convoys_default: boolean;
+          convoy_merge_mode: 'review-and-merge' | 'review-then-land';
+          github_cli_pat?: string | undefined;
+          git_author_name?: string | undefined;
+          git_author_email?: string | undefined;
+          disable_ai_coauthor: boolean;
+          custom_instructions?:
+            | {
+                polecat?: string | undefined;
+                refinery?: string | undefined;
+                mayor?: string | undefined;
+              }
+            | undefined;
+        };
+      };
+      meta: object;
+    }>;
+    updateRigConfig: import('@trpc/server').TRPCMutationProcedure<{
+      input: {
+        rigId: string;
+        townId: string;
+        config: {
+          default_model?: string | undefined;
+          small_model?: string | undefined;
+          role_models?:
+            | {
+                mayor?: string | undefined;
+                refinery?: string | undefined;
+                polecat?: string | undefined;
+              }
+            | undefined;
+          merge_strategy?: 'direct' | 'pr' | undefined;
+          refinery?:
+            | {
+                gates?: string[] | undefined;
+                auto_merge?: boolean | undefined;
+                require_clean_merge?: boolean | undefined;
+                code_review?: boolean | undefined;
+                review_mode?: 'comments' | 'rework' | undefined;
+                auto_resolve_pr_feedback?: boolean | undefined;
+                auto_merge_delay_minutes?: number | null | undefined;
+              }
+            | undefined;
+          custom_instructions?: string | undefined;
+          git_push_flags?: string[] | undefined;
+          default_branch?: string | undefined;
+          max_polecats_per_rig?: number | undefined;
+          staged_convoys_default?: boolean | undefined;
+          default_convoy_merge_mode?: 'squash' | 'merge' | 'rebase' | undefined;
+        };
+      };
+      output: {
+        townId: string;
+        rigId: string;
+        gitUrl: string;
+        defaultBranch: string;
+        userId: string;
+        kilocodeToken?: string | undefined;
+        platformIntegrationId?: string | undefined;
+        merge_strategy?: 'direct' | 'pr' | undefined;
+        default_model?: string | undefined;
+        small_model?: string | undefined;
+        role_models?:
+          | {
+              mayor?: string | undefined;
+              refinery?: string | undefined;
+              polecat?: string | undefined;
+            }
+          | undefined;
+        refinery?:
+          | {
+              gates: string[];
+              auto_merge: boolean;
+              require_clean_merge: boolean;
+              code_review: boolean;
+              review_mode: 'comments' | 'rework';
+              auto_resolve_pr_feedback: boolean;
+              auto_merge_delay_minutes: number | null;
+            }
+          | undefined;
+        custom_instructions?: string | undefined;
+        git_push_flags?: string[] | undefined;
+        default_branch?: string | undefined;
+        max_polecats_per_rig?: number | undefined;
+        staged_convoys_default?: boolean | undefined;
+        default_convoy_merge_mode?: 'squash' | 'merge' | 'rebase' | undefined;
+      };
+      meta: object;
+    }>;
     listBeads: import('@trpc/server').TRPCQueryProcedure<{
       input: {
         rigId: string;
