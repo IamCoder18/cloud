@@ -237,7 +237,7 @@ export function RigSettingsPageClient({ townId, rigId }: Props) {
   }
 
   useEffect(() => {
-    if (!initialized && configQuery.data) {
+    if (!initialized && configQuery.data && rigQuery.data) {
       populateStateFromConfig();
       setInitialized(true);
     }

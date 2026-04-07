@@ -16,7 +16,7 @@ import { getGastownOrgStub } from '../dos/GastownOrg.do';
 import type { JwtOrgMembership } from '../middleware/auth.middleware';
 import { generateKiloApiToken } from '../util/kilo-token.util';
 import { resolveSecret } from '../util/secret.util';
-import { TownConfigSchema, TownConfigUpdateSchema } from '../types';
+import { TownConfigSchema, TownConfigUpdateSchema, RigConfigSchema, type RigConfig } from '../types';
 import { resolveModel } from '../dos/town/config';
 import type { UserRigRecord } from '../db/tables/user-rigs.table';
 import {
@@ -587,6 +587,59 @@ export const gastownRouter = router({
       await ownerStub.deleteRig(input.rigId);
     }),
 
+  // ── Rig Configuration ─────────────────────────────────────────────────
+
+  getRigConfig: gastownProcedure
+    .input(z.object({ rigId: z.string().uuid(), townId: z.string().uuid() }))
+    .output(
+      z.object({
+        rigConfig: RigConfigSchema.nullable(),
+        townConfig: RpcTownConfigSchema,
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const rig = await verifyRigOwnership(ctx.env, ctx, input.rigId, input.townId);
+      const townStub = getTownDOStub(ctx.env, input.townId);
+      const [rigConfig, townConfig] = await Promise.all([
+        townStub.getRigConfig(input.rigId),
+        townStub.getTownConfig(),
+      ]);
+      return { rigConfig, townConfig };
+    }),
+
+  updateRigConfig: gastownProcedure
+    .input(
+      z.object({
+        rigId: z.string().uuid(),
+        townId: z.string().uuid(),
+        config: RigConfigSchema.partial(),
+      })
+    )
+    .output(RigConfigSchema)
+    .mutation(async ({ ctx, input }) => {
+      const rig = await verifyRigOwnership(ctx.env, ctx, input.rigId, input.townId);
+      const ownership = await resolveTownOwnership(ctx.env, ctx, input.townId);
+      if (ownership.type === 'admin') {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Admins cannot modify rig configuration for rigs they do not own',
+        });
+      }
+      const townStub = getTownDOStub(ctx.env, input.townId);
+      const existingConfig = await townStub.getRigConfig(input.rigId);
+      const mergedConfig: RigConfig = {
+        townId: input.townId,
+        rigId: input.rigId,
+        gitUrl: existingConfig?.gitUrl ?? rig.git_url,
+        defaultBranch: existingConfig?.defaultBranch ?? rig.default_branch,
+        userId: existingConfig?.userId ?? ctx.userId,
+        ...existingConfig,
+        ...input.config,
+      };
+      await townStub.configureRig(mergedConfig);
+      return mergedConfig;
+    }),
+
   // ── Beads ───────────────────────────────────────────────────────────
 
   listBeads: gastownProcedure
@@ -1014,8 +1067,8 @@ export const gastownRouter = router({
       // auth-relevant config changed. The SDK server is a child process
       // that captures env at spawn time, so it must be restarted to pick
       // up rotated tokens or cleared credentials.
-      const oldMayorModel = resolveModel(existingConfig, '', 'mayor');
-      const newMayorModel = resolveModel(result, '', 'mayor');
+      const oldMayorModel = resolveModel(existingConfig, undefined, 'mayor');
+      const newMayorModel = resolveModel(result, undefined, 'mayor');
       const mayorModelChanged =
         newMayorModel !== oldMayorModel || result.small_model !== existingConfig.small_model;
       const authConfigChanged =

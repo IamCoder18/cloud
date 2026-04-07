@@ -404,6 +404,45 @@ export const AgentConfigOverridesSchema = z.object({
 });
 export type AgentConfigOverrides = z.infer<typeof AgentConfigOverridesSchema>;
 
+/** Per-rig configuration stored in KV (mirrors what was in Rig DO) */
+export const RigConfigSchema = z.object({
+  townId: z.string().uuid(),
+  rigId: z.string().uuid(),
+  gitUrl: z.string(),
+  defaultBranch: z.string(),
+  userId: z.string().uuid(),
+  kilocodeToken: z.string().optional(),
+  platformIntegrationId: z.string().optional(),
+  merge_strategy: MergeStrategy.optional(),
+  default_model: z.string().optional(),
+  small_model: z.string().optional(),
+  role_models: z
+    .object({
+      mayor: z.string().optional(),
+      refinery: z.string().optional(),
+      polecat: z.string().optional(),
+    })
+    .optional(),
+  refinery: z
+    .object({
+      gates: z.array(z.string()).optional(),
+      auto_merge: z.boolean().optional(),
+      require_clean_merge: z.boolean().optional(),
+      code_review: z.boolean().optional(),
+      review_mode: z.enum(['rework', 'comments']).optional(),
+      auto_resolve_pr_feedback: z.boolean().optional(),
+      auto_merge_delay_minutes: z.number().int().min(0).nullable().optional(),
+    })
+    .optional(),
+  custom_instructions: z.string().max(2000).optional(),
+  git_push_flags: z.array(z.string()).optional(),
+  default_branch: z.string().optional(),
+  max_polecats_per_rig: z.number().int().min(1).max(50).optional(),
+  staged_convoys_default: z.boolean().optional(),
+  default_convoy_merge_mode: z.enum(['squash', 'merge', 'rebase']).optional(),
+});
+export type RigConfig = z.infer<typeof RigConfigSchema>;
+
 // -- UI Actions (mayor → dashboard WebSocket commands) --
 
 export const UiActionSchema = z.discriminatedUnion('type', [
