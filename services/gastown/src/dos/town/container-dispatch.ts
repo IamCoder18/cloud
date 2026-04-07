@@ -324,6 +324,11 @@ export async function startAgentInContainer(
       role_models?: Record<string, string>;
       townId: string;
       rigId: string;
+      custom_instructions?: string;
+      git_push_flags?: string[];
+      gitUrl: string;
+      defaultBranch: string;
+      userId: string;
     };
     systemPromptOverride?: string;
     platformIntegrationId?: string;

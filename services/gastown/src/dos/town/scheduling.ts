@@ -50,6 +50,8 @@ type RigConfig = {
   default_model?: string;
   small_model?: string;
   role_models?: Record<string, string>;
+  custom_instructions?: string;
+  git_push_flags?: string[];
 };
 
 function now(): string {
@@ -147,6 +149,11 @@ export async function dispatchAgent(
         role_models: rigConfig.role_models as Record<string, string> | undefined,
         townId: rigConfig.townId,
         rigId: rigConfig.rigId,
+        custom_instructions: rigConfig.custom_instructions,
+        git_push_flags: rigConfig.git_push_flags,
+        gitUrl: rigConfig.gitUrl,
+        defaultBranch: rigConfig.defaultBranch,
+        userId: rigConfig.userId,
       },
       platformIntegrationId: rigConfig.platformIntegrationId,
       convoyFeatureBranch: convoyFeatureBranch ?? undefined,

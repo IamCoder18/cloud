@@ -681,7 +681,7 @@ export const gastownRouter = router({
         townId: input.townId,
         rigId: input.rigId,
         gitUrl: existingConfig?.gitUrl ?? rig.git_url,
-        defaultBranch: existingConfig?.defaultBranch ?? rig.default_branch,
+        defaultBranch: input.config.default_branch ?? existingConfig?.defaultBranch ?? rig.default_branch,
         userId: existingConfig?.userId ?? ctx.userId,
         ...existingConfig,
         ...input.config,
