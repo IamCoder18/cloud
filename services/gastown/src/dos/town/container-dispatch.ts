@@ -248,8 +248,12 @@ export function systemPromptForRole(params: {
 export function appendCustomInstructions(
   systemPrompt: string,
   role: string,
-  townConfig: TownConfig
+  townConfig: TownConfig,
+  rigCustomInstructions?: string
 ): string {
+  if (rigCustomInstructions?.trim()) {
+    return `${systemPrompt}\n\n## Custom Instructions (from rig settings)\n\n${rigCustomInstructions.trim()}`;
+  }
   const roleKey = role as keyof NonNullable<TownConfig['custom_instructions']>;
   const instructions = townConfig.custom_instructions?.[roleKey]?.trim();
   if (!instructions) return systemPrompt;
@@ -450,7 +454,8 @@ export async function startAgentInContainer(
               gates: params.townConfig.refinery?.gates ?? [],
             }),
           params.role,
-          params.townConfig
+          params.townConfig,
+          params.rigConfig?.custom_instructions
         ),
         gitUrl: params.gitUrl,
         branch: params.convoyFeatureBranch

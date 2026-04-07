@@ -683,8 +683,8 @@ export const gastownRouter = router({
         gitUrl: existingConfig?.gitUrl ?? rig.git_url,
         defaultBranch: input.config.default_branch ?? existingConfig?.defaultBranch ?? rig.default_branch,
         userId: existingConfig?.userId ?? ctx.userId,
-        ...existingConfig,
         ...input.config,
+        ...(existingConfig ?? {}),
       };
       await townStub.configureRig(mergedConfig);
       return mergedConfig;
