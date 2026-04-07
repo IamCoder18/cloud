@@ -72,13 +72,13 @@ describe('merge strategy', () => {
     });
 
     it('returns rig override when set', () => {
-      expect(resolveMergeStrategy(townConfig('direct'), 'pr')).toBe('pr');
-      expect(resolveMergeStrategy(townConfig('pr'), 'direct')).toBe('direct');
+      expect(resolveMergeStrategy(townConfig('direct'), { merge_strategy: 'pr' })).toBe('pr');
+      expect(resolveMergeStrategy(townConfig('pr'), { merge_strategy: 'direct' })).toBe('direct');
     });
 
     it('rig override takes precedence over town default', () => {
       const config = townConfig('direct');
-      expect(resolveMergeStrategy(config, 'pr')).toBe('pr');
+      expect(resolveMergeStrategy(config, { merge_strategy: 'pr' })).toBe('pr');
     });
   });
 });

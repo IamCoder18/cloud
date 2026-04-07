@@ -7,6 +7,7 @@ import {
   type TownConfig,
   type TownConfigUpdate,
   type MergeStrategy,
+  type RigConfig,
 } from '../../types';
 
 const CONFIG_KEY = 'town:config';
@@ -129,20 +130,28 @@ export async function updateTownConfig(
 }
 
 /**
- * Resolve the primary model from town config.
+ * Resolve the primary model from config.
  * Priority: rig override → role-specific → town default → hardcoded default.
  */
-export function resolveModel(townConfig: TownConfig, _rigId: string, role: string): string {
-  const roleModels: Record<string, string | undefined> | undefined = townConfig.role_models;
-  return roleModels?.[role] ?? townConfig.default_model ?? 'anthropic/claude-sonnet-4.6';
+export function resolveModel(
+  townConfig: TownConfig,
+  rigConfig: RigConfig | undefined,
+  role: string
+): string {
+  const rigRoleModels: Record<string, string | undefined> | undefined = rigConfig?.role_models;
+  const townRoleModels: Record<string, string | undefined> | undefined = townConfig.role_models;
+  const roleModel = rigRoleModels?.[role] ?? townRoleModels?.[role];
+  const defaultModel = rigConfig?.default_model ?? townConfig.default_model;
+  return roleModel ?? defaultModel ?? 'anthropic/claude-sonnet-4.6';
 }
 
 /**
- * Resolve the small (lightweight) model from town config.
+ * Resolve the small (lightweight) model from config.
+ * Priority: rig override → town default → hardcoded default.
  * Used for title generation, explore subagent, etc.
  */
-export function resolveSmallModel(townConfig: TownConfig): string {
-  return townConfig.small_model ?? 'anthropic/claude-haiku-4.5';
+export function resolveSmallModel(townConfig: TownConfig, rigConfig: RigConfig | undefined): string {
+  return rigConfig?.small_model ?? townConfig.small_model ?? 'anthropic/claude-haiku-4.5';
 }
 
 /**
@@ -151,9 +160,40 @@ export function resolveSmallModel(townConfig: TownConfig): string {
  */
 export function resolveMergeStrategy(
   townConfig: TownConfig,
-  rigMergeStrategy: MergeStrategy | undefined
+  rigConfig: RigConfig | undefined
 ): MergeStrategy {
-  return rigMergeStrategy ?? townConfig.merge_strategy;
+  return rigConfig?.merge_strategy ?? townConfig.merge_strategy ?? 'direct';
+}
+
+/**
+ * Resolve the effective refinery config for a rig.
+ * Priority: rig-level override → town-level default → hardcoded defaults.
+ */
+export function resolveRefineryConfig(
+  townConfig: TownConfig,
+  rigConfig: RigConfig | undefined
+): {
+  gates: string[];
+  auto_merge: boolean;
+  require_clean_merge: boolean;
+  code_review: boolean;
+  auto_resolve_pr_feedback: boolean;
+  auto_merge_delay_minutes: number | null;
+} {
+  const townRefinery = townConfig.refinery;
+  const rigRefinery = rigConfig?.refinery;
+  return {
+    gates: rigRefinery?.gates ?? townRefinery?.gates ?? [],
+    auto_merge: rigRefinery?.auto_merge ?? townRefinery?.auto_merge ?? true,
+    require_clean_merge: rigRefinery?.require_clean_merge ?? townRefinery?.require_clean_merge ?? true,
+    code_review: rigRefinery?.code_review ?? townRefinery?.code_review ?? true,
+    auto_resolve_pr_feedback:
+      rigRefinery?.auto_resolve_pr_feedback ?? townRefinery?.auto_resolve_pr_feedback ?? false,
+    auto_merge_delay_minutes:
+      rigRefinery?.auto_merge_delay_minutes !== undefined
+        ? rigRefinery.auto_merge_delay_minutes
+        : (townRefinery?.auto_merge_delay_minutes ?? null),
+  };
 }
 
 /**
@@ -167,8 +207,8 @@ export async function buildContainerConfig(
   const config = await getTownConfig(storage);
   return {
     env_vars: config.env_vars,
-    default_model: resolveModel(config, '', ''),
-    small_model: resolveSmallModel(config),
+    default_model: resolveModel(config, undefined, ''),
+    small_model: resolveSmallModel(config, undefined),
     git_auth: config.git_auth,
     kilocode_token: config.kilocode_token,
     github_cli_pat: config.github_cli_pat,
@@ -178,5 +218,33 @@ export async function buildContainerConfig(
     kilo_api_url: env.KILO_API_URL ?? '',
     gastown_api_url: env.GASTOWN_API_URL ?? '',
     organization_id: config.organization_id,
+  };
+}
+
+/**
+ * Build the ContainerConfig payload with rig-level overrides applied.
+ * Used when dispatching agents to a specific rig.
+ */
+export async function buildContainerConfigForRig(
+  storage: DurableObjectStorage,
+  env: Env,
+  rigConfig: RigConfig
+): Promise<Record<string, unknown>> {
+  const townConfig = await getTownConfig(storage);
+  return {
+    env_vars: townConfig.env_vars,
+    default_model: resolveModel(townConfig, rigConfig, ''),
+    small_model: resolveSmallModel(townConfig, rigConfig),
+    git_auth: townConfig.git_auth,
+    kilocode_token: townConfig.kilocode_token,
+    github_cli_pat: townConfig.github_cli_pat,
+    git_author_name: townConfig.git_author_name,
+    git_author_email: townConfig.git_author_email,
+    disable_ai_coauthor: townConfig.disable_ai_coauthor,
+    custom_instructions: rigConfig.custom_instructions,
+    git_push_flags: rigConfig.git_push_flags,
+    kilo_api_url: env.KILO_API_URL ?? '',
+    gastown_api_url: env.GASTOWN_API_URL ?? '',
+    organization_id: townConfig.organization_id,
   };
 }
