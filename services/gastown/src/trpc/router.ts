@@ -678,13 +678,13 @@ export const gastownRouter = router({
       const townStub = getTownDOStub(ctx.env, input.townId);
       const existingConfig = await townStub.getRigConfig(input.rigId);
       const mergedConfig: RigConfig = {
+        ...(existingConfig ?? {}),
+        ...input.config,
         townId: input.townId,
         rigId: input.rigId,
         gitUrl: existingConfig?.gitUrl ?? rig.git_url,
         defaultBranch: input.config.default_branch ?? existingConfig?.defaultBranch ?? rig.default_branch,
         userId: existingConfig?.userId ?? ctx.userId,
-        ...input.config,
-        ...(existingConfig ?? {}),
       };
       await townStub.configureRig(mergedConfig);
       return mergedConfig;
