@@ -175,19 +175,20 @@ export async function getProvider(
   }
 
   const kiloExclusiveModel = kiloExclusiveModels.find(m => m.public_id === requestedModel);
-  const defaultProvider =
-    Object.values(PROVIDERS).find(p => p.id === kiloExclusiveModel?.gateway) ??
-    PROVIDERS.OPENROUTER;
+  const eligibleForVercelRouting =
+    !kiloExclusiveModel || kiloExclusiveModel.flags.includes('vercel-routing');
 
   if (
-    defaultProvider.id === 'openrouter' &&
+    eligibleForVercelRouting &&
     (await shouldRouteToVercel(requestedModel, request, taskId || user.id))
   ) {
     return { provider: PROVIDERS.VERCEL_AI_GATEWAY, userByok: null, bypassAccessCheck: false };
   }
 
   return {
-    provider: defaultProvider,
+    provider:
+      Object.values(PROVIDERS).find(p => p.id === kiloExclusiveModel?.gateway) ??
+      PROVIDERS.OPENROUTER,
     userByok: null,
     bypassAccessCheck: false,
   };
