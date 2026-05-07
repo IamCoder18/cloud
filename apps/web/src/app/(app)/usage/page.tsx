@@ -162,12 +162,9 @@ export default function UsagePage() {
   const [groupByModel, setGroupByModel] = useState(false);
   const [viewType, setViewType] = useState<string>('personal');
   const [period, setPeriod] = useState<Period>('week');
-  const [timeZone, setTimeZone] = useState<string | null>(null);
-
-  // Detect browser timezone on mount
-  useEffect(() => {
-    setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  }, []);
+  const [timeZone, setTimeZone] = useState<string>(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone
+  );
 
   const {
     data: usageData,
@@ -176,11 +173,7 @@ export default function UsagePage() {
     refetch,
   } = useQuery({
     queryKey: ['usage-data', groupByModel, viewType, period, timeZone],
-    queryFn: () => {
-      if (!timeZone) throw new Error('Timezone not detected');
-      return fetchUsageData(groupByModel, viewType, period, timeZone);
-    },
-    enabled: timeZone !== null,
+    queryFn: () => fetchUsageData(groupByModel, viewType, period, timeZone),
   });
 
   const { data: autocompleteMetrics, isLoading: isLoadingAutocompleteMetrics } = useQuery(
@@ -198,7 +191,7 @@ export default function UsagePage() {
 
   const periodLabel = PERIOD_LABELS[period];
 
-  if (!timeZone || isLoading) {
+  if (isLoading) {
     return (
       <PageLayout title="Usage">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
