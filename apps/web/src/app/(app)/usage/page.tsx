@@ -48,10 +48,11 @@ type UsageResponse = {
 async function fetchUsageData(
   groupByModel: boolean,
   viewType: string,
-  period: Period
+  period: Period,
+  timeZone: string
 ): Promise<UsageResponse> {
   const response = await fetch(
-    `/api/profile/usage?groupByModel=${groupByModel}&viewType=${viewType}&period=${period}`
+    `/api/profile/usage?groupByModel=${groupByModel}&viewType=${viewType}&period=${period}&timeZone=${encodeURIComponent(timeZone)}`
   );
   if (!response.ok) {
     if (response.status === 401) {
@@ -66,6 +67,12 @@ async function fetchUsageData(
   return data;
 }
 
+// Formats a date in the given timezone as YYYY-MM-DD
+// Uses 'en-CA' locale because it formats dates as YYYY-MM-DD by default
+function formatDateInTimeZone(date: Date, timeZone: string): string {
+  return date.toLocaleDateString('en-CA', { timeZone });
+}
+
 function calculateTotals(usage: UsageData[]) {
   return usage.reduce(
     (totals, item) => ({
@@ -77,7 +84,7 @@ function calculateTotals(usage: UsageData[]) {
   );
 }
 
-function calculateStreak(usageData: UsageData[]): number {
+function calculateStreak(usageData: UsageData[], timeZone: string): number {
   // Create a set of dates that have usage (any requests > 0)
   const usageDates = new Set(
     usageData.filter(item => item.request_count > 0).map(item => item.date)
@@ -93,7 +100,8 @@ function calculateStreak(usageData: UsageData[]): number {
     // Max 365 days to prevent infinite loop
     const checkDate = new Date(today);
     checkDate.setDate(today.getDate() - i);
-    const dateString = checkDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    // Use timezone-aware date formatting (YYYY-MM-DD)
+    const dateString = formatDateInTimeZone(checkDate, timeZone);
 
     if (usageDates.has(dateString)) {
       streak++;
@@ -108,7 +116,8 @@ function calculateStreak(usageData: UsageData[]): number {
 }
 
 function transformUsageDataForStreakCalendar(
-  usageData: UsageData[]
+  usageData: UsageData[],
+  timeZone: string
 ): { date: string; count: number }[] {
   // Create a map of date -> total request count for that date
   const dateRequestMap = new Map<string, number>();
@@ -126,7 +135,8 @@ function transformUsageDataForStreakCalendar(
   for (let i = 83; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    // Use timezone-aware date formatting (YYYY-MM-DD)
+    const dateString = formatDateInTimeZone(date, timeZone);
 
     const requestCount = dateRequestMap.get(dateString) || 0;
 
@@ -152,6 +162,12 @@ export default function UsagePage() {
   const [groupByModel, setGroupByModel] = useState(false);
   const [viewType, setViewType] = useState<string>('personal');
   const [period, setPeriod] = useState<Period>('week');
+  const [timeZone, setTimeZone] = useState<string | null>(null);
+
+  // Detect browser timezone on mount
+  useEffect(() => {
+    setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }, []);
 
   const {
     data: usageData,
@@ -159,8 +175,12 @@ export default function UsagePage() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['usage-data', groupByModel, viewType, period],
-    queryFn: () => fetchUsageData(groupByModel, viewType, period),
+    queryKey: ['usage-data', groupByModel, viewType, period, timeZone],
+    queryFn: () => {
+      if (!timeZone) throw new Error('Timezone not detected');
+      return fetchUsageData(groupByModel, viewType, period, timeZone);
+    },
+    enabled: timeZone !== null,
   });
 
   const { data: autocompleteMetrics, isLoading: isLoadingAutocompleteMetrics } = useQuery(
@@ -178,7 +198,7 @@ export default function UsagePage() {
 
   const periodLabel = PERIOD_LABELS[period];
 
-  if (isLoading) {
+  if (!timeZone || isLoading) {
     return (
       <PageLayout title="Usage">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -366,8 +386,8 @@ export default function UsagePage() {
   }
 
   const { totalCost, totalRequests, totalTokens } = calculateTotals(usageData.usage);
-  const streak = calculateStreak(usageData.usage);
-  const streakCalendarData = transformUsageDataForStreakCalendar(usageData.usage);
+  const streak = calculateStreak(usageData.usage, timeZone);
+  const streakCalendarData = transformUsageDataForStreakCalendar(usageData.usage, timeZone);
 
   // Prepare table data
   const tableColumns: UsageTableColumn[] = [

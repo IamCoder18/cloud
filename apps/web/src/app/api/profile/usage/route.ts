@@ -9,6 +9,16 @@ import { getDateThreshold, type Period } from '@/routers/user-router';
 
 const VALID_PERIODS = new Set(['week', 'month', 'year', 'all']);
 
+// Validate IANA timezone string to prevent SQL injection
+function isValidTimezone(tz: string): boolean {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch (_e) {
+    return false;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const { user, authFailedResponse } = await getUserFromAuth({
     adminOnly: false,
@@ -21,12 +31,23 @@ export async function GET(request: NextRequest) {
   const viewType = searchParams.get('viewType') || 'personal'; // 'personal', 'all', or organization ID
   const periodParam = searchParams.get('period') || 'week';
   const period: Period = VALID_PERIODS.has(periodParam) ? (periodParam as Period) : 'week';
+  const timeZoneParam = searchParams.get('timeZone');
+  const userTimeZone = timeZoneParam && isValidTimezone(timeZoneParam) ? timeZoneParam : 'UTC';
 
   const userId = user.id;
 
+  // Helper to get timezone-aware date SQL
+  const getDateSql = () => {
+    if (userTimeZone === 'UTC') {
+      return sql<string>`DATE(${microdollar_usage.created_at})`;
+    }
+    return sql<string>`(${microdollar_usage.created_at} AT TIME ZONE 'UTC' AT TIME ZONE ${userTimeZone})::date`;
+  };
+
   // Build the select object conditionally
+  const dateSql = getDateSql();
   const selectFields = {
-    date: sql<string>`DATE(${microdollar_usage.created_at})`,
+    date: dateSql,
     ...(groupByModel && {
       model: sql<
         string | null
@@ -42,13 +63,13 @@ export async function GET(request: NextRequest) {
 
   // Build the group by and order by clauses conditionally
   const groupByClause = [
-    sql`DATE(${microdollar_usage.created_at})`,
+    dateSql,
     ...(groupByModel
       ? [sql`COALESCE(${microdollar_usage.requested_model}, ${microdollar_usage.model})`]
       : []),
   ];
   const orderByClause = [
-    desc(sql`DATE(${microdollar_usage.created_at})`),
+    desc(dateSql),
     ...(groupByModel
       ? [sql`COALESCE(${microdollar_usage.requested_model}, ${microdollar_usage.model})`]
       : []),
