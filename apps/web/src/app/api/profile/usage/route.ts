@@ -41,7 +41,8 @@ export async function GET(request: NextRequest) {
     if (userTimeZone === 'UTC') {
       return sql<string>`DATE(${microdollar_usage.created_at})`;
     }
-    return sql<string>`(${microdollar_usage.created_at} AT TIME ZONE 'UTC' AT TIME ZONE ${userTimeZone})::date`;
+    // created_at is timestamptz (stored as UTC), convert directly to user's timezone
+    return sql<string>`(${microdollar_usage.created_at} AT TIME ZONE ${userTimeZone})::date`;
   };
 
   // Build the select object conditionally

@@ -162,7 +162,7 @@ export default function UsagePage() {
   const [groupByModel, setGroupByModel] = useState(false);
   const [viewType, setViewType] = useState<string>('personal');
   const [period, setPeriod] = useState<Period>('week');
-  const [timeZone, setTimeZone] = useState<string>(
+  const [timeZone] = useState<string>(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone
   );
 
